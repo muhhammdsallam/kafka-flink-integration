@@ -26,7 +26,7 @@ public class WikimediaChangeSchema {
 
     @Override
     public String toString() {
-        return "WikimediaChangeSchema{" +
+        return "{" +
                 "id=" + id +
                 ", type='" + type + '\'' +
                 ", user='" + user + '\'' +
