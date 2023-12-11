@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.formats.json.JsonDeserializationSchema;
@@ -13,20 +14,17 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 public class FlinkKafkaConsumer {
 
-//    public static String prettyPrintJsonUsingDefaultPrettyPrinter(String uglyJsonString) throws JsonProcessingException {
-//        ObjectMapper objectMapper = new ObjectMapper();
-//        Object jsonObject = objectMapper.readValue(uglyJsonString, Object.class);
-//        String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonObject);
-//        return prettyJson;
-//    }
-
     public static void main(String[] args) throws Exception {
+
         String brokers = "localhost:9092";
         String kafkaTopic = "wikimedia-changes";
 
-        // Set up the Flink execution environment
+        // Set up the Flink execution environment locally
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-//        JsonDeserializationSchema<SomePojo> jsonFormat=new JsonDeserializationSchema<>(SomePojo.class);
+
+        // Set up the Flink Remote execution environment with the flink job manager running on docker
+//        ExecutionEnvironment env = ExecutionEnvironment
+//               .createRemoteEnvironment("flink-jobmanager", 8081, "/home/user/udfs.jar");
 
         KafkaSource<String> source = KafkaSource.<String>builder()
                 .setBootstrapServers(brokers)
@@ -40,34 +38,37 @@ public class FlinkKafkaConsumer {
 
         // Processing logic goes here
         // TODO: Add your processing logic here to process json messages from Kafka
+
+        // Deserializing the json string to a WikimediaChangeSchema POJO object
         DataStream<WikimediaChangeSchema> deserialzedDataStream = kafkaDataStream.map(jsonString -> {
-            try {
+
+            try
+            {
                 ObjectMapper objectMapper = new ObjectMapper();
                 JsonNode jsonNode = objectMapper.readTree(jsonString);
 
-                // For example, extract a field and modify it
-                long id = jsonNode.get("id").asLong();
-                String type = jsonNode.get("type").asText();
-                String user = jsonNode.get("user").asText();
+                // Extracting the values from the json node
+                JsonNode idNode = jsonNode.get("id");
+                long id = (idNode == null) ? 0 : idNode.asLong();
+
+                JsonNode typeNode = jsonNode.get("type");
+                String type = (typeNode == null) ? "" : typeNode.asText();
+
+                JsonNode userNode = jsonNode.get("user");
+                String user = (userNode == null) ? "" : userNode.asText();
 
                 // Creating a wikimedia change object
-                WikimediaChangeSchema wikimediaChangeSchema = new WikimediaChangeSchema(id, type, user);
+                return new WikimediaChangeSchema(id, type, user);
 
-                // print the object
-//            System.out.println(wikimediaChangeSchema.toString());
-
-                return wikimediaChangeSchema;
-            }
-            catch (JsonProcessingException e) {
+        }
+            catch (JsonProcessingException e)
+            {
                 e.printStackTrace();
                 return null;
             }
-
         });
 
-//        kafkaDataStream.getType();
         deserialzedDataStream.print();
-//        System.out.println(formattedDataStream);
 
         // Execute the Flink job
         env.execute("Kafka DataStream Example");

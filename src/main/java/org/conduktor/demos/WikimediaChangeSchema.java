@@ -19,14 +19,9 @@ public class WikimediaChangeSchema {
 
     }
 
-//    public static WikimediaChangeSchema fromString(String line) {
-//        String[] parts = line.split("\\|");
-//        return new WikimediaChangeSchema(Integer.parseInt(parts[0]), parts[1], parts[2], parts[3]);
-//    }
-
     @Override
     public String toString() {
-        return "WikimediaChangeSchema{" +
+        return "{" +
                 "id=" + id +
                 ", type='" + type + '\'' +
                 ", user='" + user + '\'' +
