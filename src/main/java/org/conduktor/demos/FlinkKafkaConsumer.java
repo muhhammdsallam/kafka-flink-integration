@@ -6,11 +6,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
+import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.formats.json.JsonDeserializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.hadoop.conf.Configuration;
 
 public class FlinkKafkaConsumer {
 
@@ -18,6 +21,10 @@ public class FlinkKafkaConsumer {
 
         String brokers = "localhost:9092";
         String kafkaTopic = "wikimedia-changes";
+
+        // Set up HDFS Configurations
+        String hdfsPath = "hdfs://localhost:9870/output.txt";
+
 
         // Set up the Flink execution environment locally
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -69,6 +76,7 @@ public class FlinkKafkaConsumer {
         });
 
         deserialzedDataStream.print();
+        deserialzedDataStream.writeAsText(hdfsPath, FileSystem.WriteMode.OVERWRITE);
 
         // Execute the Flink job
         env.execute("Kafka DataStream Example");
